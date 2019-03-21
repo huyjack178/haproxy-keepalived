@@ -1,0 +1,91 @@
+global
+    log /dev/log local0 info
+    chroot /var/lib/haproxy
+    nbproc 1
+    nbthread 4
+    daemon
+    stats socket /run/haproxy/haproxy.sock mode 660 level admin expose-fd listeners        
+    stats timeout 2m # Wait up to 2 minutes for input
+    tune.ssl.default-dh-param 2048
+
+
+defaults
+    log global
+    option httplog
+    option dontlognull
+    mode http
+    timeout http-request 5s
+    option http-buffer-request
+    timeout connect 5s
+    timeout client 120s
+    timeout server 120s
+
+listen stats
+    bind *:8080
+    mode  http
+    maxconn  10
+    stats refresh 30s
+    stats admin if TRUE
+    stats  enable
+    stats  hide-version
+    stats  realm Haproxy\ Statistics
+    stats  uri /
+#   stats  auth admin:1234aaAA
+    stats show-legends
+
+cache test
+    total-max-size 4
+    max-age 240
+
+backend st_src_global
+    stick-table type ip size 1m expire 10s store http_req_rate(10s),http_err_rate(10s),conn_cur,conn_rate(3s)
+
+# frontend httpsin
+#        bind *:80
+#        bind *:443 ssl crt /etc/haproxy/docker.pem alpn h2,http/1.1
+#        mode http
+#        redirect scheme https code 301 if !{ ssl_fc }
+
+
+frontend test1
+    bind *:7223
+    default_backend mSite
+
+frontend test
+    bind *:7221  ssl crt /etc/ssl/certs/haproxy.pem alpn h2,http/1.1
+    tcp-request content track-sc0 src table st_src_global
+    tcp-request content reject if { sc_conn_cur(0) gt 1000 }
+    http-request cache-use test
+    redirect scheme https code 301 if !{ ssl_fc }
+    http-response cache-store test
+    default_backend mSite
+		
+frontend mSiteFrontEnd
+    bind *:7220
+    tcp-request inspect-delay 10s
+    tcp-request content track-sc0 src table st_src_global
+    http-request deny if { sc_http_req_rate(0) gt 100 }
+    http-request deny if { req.hdr(user-agent) -i -m sub curl phantomjs slimerjs }
+    default_backend mSite
+
+backend mSite
+    compression algo gzip
+    compression type text/css text/html text/javascript application/javascript text/plain text/xml application/json
+    stick-table type integer size 1 expire 1d
+    stick on int(1)
+    server mSite1 10.18.200.202:7220 check on-marked-down shutdown-sessions
+    server mSite2 10.18.200.209:7220 check backup on-marked-down shutdown-sessions
+
+frontend skynexFrontEnd
+    bind *:6969
+    tcp-request inspect-delay 10s
+    tcp-request content track-sc0 src table st_src_global
+    http-request deny if { sc_http_req_rate(0) gt 100 }
+    http-request deny if { req.hdr(user-agent) -i -m sub curl phantomjs slimerjs }
+    default_backend skynex
+
+backend skynex
+    compression algo gzip
+    compression type text/css text/html text/javascript application/javascript text/plain text/xml application/json
+    {{range service "skynex"}}
+    server {{.Node}} {{.Address}}:{{.Port}} check on-marked-down shutdown-sessions {{end}} 

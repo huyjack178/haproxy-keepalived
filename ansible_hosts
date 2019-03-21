@@ -1,0 +1,4 @@
+[default] 
+haproxy1 ansible_ssh_host=10.19.10.154 ansible_port=22 ansible_ssh_user=root ansible_ssh_pass=1qaz@WSX keepalived_priority=100 keepalived_bind_interface=enp3s0
+haproxy2 ansible_ssh_host=10.19.10.155 ansible_port=22 ansible_ssh_user=root ansible_ssh_pass=1qaz@WSX keepalived_priority=101 keepalived_bind_interface=enp3s0
+

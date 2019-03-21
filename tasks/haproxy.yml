@@ -1,0 +1,32 @@
+---
+- name: Add latest HAProxy PPA
+  apt_repository:
+    repo: "{{ haproxy_ppa }}"
+    update_cache: true
+  tags:
+    - haproxy-install-add-repository
+
+- name: Install HAProxy package
+  apt:
+    name: "haproxy"
+    state: "latest"
+  tags:
+    - haproxy-install-dependencies
+
+- name: Copy HAProxy configuration in place.
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    backup: yes
+    validate: haproxy -f %s -c
+  notify: restart haproxy
+
+- name: Ensure HAProxy is started and enabled on boot.
+  service: name=haproxy state=started enabled=yes
+
+- name: Put rsyslogd config file in /etc/rsyslog.d/
+  copy: src=files/49-haproxy.conf dest=/etc/rsyslog.d/49-haproxy.conf owner=root group=root mode=0644
+  notify: restart rsyslog
+
+- name: Ensure rsyslog is started and enabled on boot.
+  service: name=rsyslog state=started enabled=yes

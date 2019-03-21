@@ -1,0 +1,7 @@
+---
+# Keepalived config
+keepalived_vip: 10.19.10.115
+
+# HAProxy setting
+haproxy_major_version: 1.8
+haproxy_ppa: "ppa:vbernat/haproxy-{{ haproxy_major_version }}"
