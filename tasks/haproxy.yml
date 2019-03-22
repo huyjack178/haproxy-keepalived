@@ -13,6 +13,9 @@
   tags:
     - haproxy-install-dependencies
 
+- name: Put haproxy-key for SSL
+  copy: src=files/haproxy.pem dest=/etc/ssl/certs/haproxy.pem owner=root group=root mode=0644
+
 - name: Copy HAProxy configuration in place.
   template:
     src: haproxy.cfg.j2
