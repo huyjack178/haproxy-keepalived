@@ -45,7 +45,7 @@ frontend test1
     default_backend mSite
 
 frontend test
-    bind *:7221
+    bind *:7221 ssl crt /etc/ssl/certs/haproxy.pem alpn h2,http/1.1
     tcp-request content track-sc0 src table st_src_global
     tcp-request content reject if { sc_conn_cur(0) gt 1000 }
     http-request cache-use test
