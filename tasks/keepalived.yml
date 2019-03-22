@@ -12,7 +12,6 @@
   notify: restart keepalived
 
 - name: Ensure keepalived is started
-  service:
-    name=keepalived
+  service: name=keepalived
     state=started
     enabled=yes
